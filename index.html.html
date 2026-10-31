@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Active Threat in Building</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,400;0,600;0,700;0,800;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F5F7F7; --surface:#FFFFFF; --ink:#1C2830; --muted:#55636C; --rule:#CBD4D9;
+  --amber:#9A5A00; --amber-bg:#FFF4E0; --teal:#1C6763; --teal-bg:#E5F2F0;
+  --red:#9E2328; --red-bg:#FBEAEA; --chip:#E7ECEF;
+  --sans:"Public Sans",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  --serif:"Source Serif 4",Georgia,"Times New Roman",serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#11181D; --surface:#182228; --ink:#E4EAED; --muted:#9AA8B0; --rule:#2E3B43;
+    --amber:#F0B45A; --amber-bg:#2A2214; --teal:#7CCBC4; --teal-bg:#14282A;
+    --red:#F08A8C; --red-bg:#2C1719; --chip:#22303A; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#11181D; --surface:#182228; --ink:#E4EAED; --muted:#9AA8B0; --rule:#2E3B43;
+  --amber:#F0B45A; --amber-bg:#2A2214; --teal:#7CCBC4; --teal-bg:#14282A;
+  --red:#F08A8C; --red-bg:#2C1719; --chip:#22303A; color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 64px);scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:17px;line-height:1.55}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+a{color:var(--teal)}
+:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+
+/* Top bar */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--rule)}
+.bar-in{max-width:1180px;margin:0 auto;display:flex;align-items:center;gap:12px;padding:10px 20px;flex-wrap:wrap}
+.bar strong{font-weight:800;letter-spacing:-.01em;white-space:nowrap}
+.bar nav{display:flex;gap:4px;overflow-x:auto;flex:1;min-width:0}
+.bar nav a{text-decoration:none;color:var(--muted);font-size:14px;padding:6px 10px;border-radius:6px;white-space:nowrap}
+.bar nav a:hover{background:var(--chip);color:var(--ink)}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:8px;overflow:hidden}
+.seg button{font:600 13px var(--sans);border:0;background:transparent;color:var(--muted);padding:7px 11px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+
+/* Hero */
+.hero{padding:56px 0 36px;border-bottom:1px solid var(--rule)}
+.hero h1{font-size:clamp(34px,5.5vw,58px);line-height:1.04;letter-spacing:-.025em;margin:0 0 14px;font-weight:800;max-width:16ch}
+.hero p.lede{font-family:var(--serif);font-size:21px;line-height:1.5;max-width:62ch;margin:0 0 26px;color:var(--ink)}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:10px;overflow:hidden}
+.facts div{background:var(--surface);padding:14px 16px}
+.facts dt{font-size:13px;color:var(--muted);margin-bottom:2px}
+.facts dd{margin:0;font-weight:600}
+
+/* Agenda timeline */
+.agenda{display:grid;grid-template-columns:repeat(6,1fr);gap:0;margin:28px 0 0;border-radius:10px;overflow:hidden;border:1px solid var(--rule)}
+.agenda a{display:block;text-decoration:none;color:var(--ink);background:var(--surface);padding:12px 14px;border-right:1px solid var(--rule)}
+.agenda a:last-child{border-right:0}
+.agenda .mins{font-size:13px;color:var(--muted)}
+.agenda .nm{font-weight:700;font-size:15px;line-height:1.3}
+@media (max-width:760px){.agenda{grid-template-columns:repeat(2,1fr)}.agenda a{border-bottom:1px solid var(--rule)}}
+
+/* Sections */
+section.mod{padding:52px 0 20px;border-bottom:1px solid var(--rule)}
+.modhead{display:grid;grid-template-columns:auto 1fr;gap:6px 22px;align-items:baseline;margin-bottom:22px}
+.modhead .clock{font-variant-numeric:tabular-nums;font-weight:800;font-size:clamp(26px,3.6vw,38px);color:var(--amber);letter-spacing:-.02em;grid-row:span 2}
+.modhead h2{margin:0;font-size:clamp(24px,3vw,32px);letter-spacing:-.015em;line-height:1.15}
+.modhead .sub{color:var(--muted);font-size:15px}
+@media (max-width:640px){.modhead{grid-template-columns:1fr}.modhead .clock{grid-row:auto}}
+
+.cols{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:32px;align-items:start}
+@media (max-width:980px){.cols{grid-template-columns:1fr}}
+
+h3{font-size:19px;margin:30px 0 10px;letter-spacing:-.01em}
+h4{font-size:16px;margin:18px 0 6px}
+ul,ol{padding-left:1.25em;margin:6px 0 14px}
+li{margin:4px 0}
+p{margin:8px 0 12px;max-width:75ch}
+
+.readaloud{font-family:var(--serif);font-size:20px;line-height:1.62;background:var(--surface);border:1px solid var(--rule);border-left:6px solid var(--ink);border-radius:4px 10px 10px 4px;padding:20px 24px;margin:0 0 22px}
+.readaloud p{max-width:68ch;margin:0 0 12px}
+.readaloud p:last-child{margin:0}
+.ra-label{font-family:var(--sans);font-size:13px;color:var(--muted);font-weight:600;margin-bottom:6px;display:block}
+
+/* Injects: timeline */
+.injects{position:relative;margin:8px 0 24px;padding-left:28px}
+.injects::before{content:"";position:absolute;left:8px;top:8px;bottom:8px;width:2px;background:var(--rule)}
+.inject{position:relative;background:var(--amber-bg);border:1px solid color-mix(in srgb,var(--amber) 35%,transparent);border-radius:10px;padding:14px 18px;margin:0 0 16px}
+.inject::before{content:"";position:absolute;left:-26px;top:20px;width:14px;height:14px;border-radius:50%;background:var(--paper);border:3px solid var(--amber)}
+.inject.shown::before{background:var(--amber)}
+.ihead{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.itime{font-weight:800;font-variant-numeric:tabular-nums;color:var(--amber)}
+.ititle{font-weight:700;flex:1;min-width:12ch}
+.ifrom{font-size:14px;color:var(--muted);width:100%}
+.reveal{font:600 13px var(--sans);border:1px solid var(--amber);background:var(--surface);color:var(--amber);border-radius:6px;padding:5px 10px;cursor:pointer}
+.ibody{font-family:var(--serif);font-size:18px;line-height:1.58;margin-top:10px}
+.ibody p{margin:0 0 10px}
+.ibody p:last-child{margin:0}
+body.proj .inject:not(.shown) .ibody{display:none}
+body.fac .inject:not(.shown) .ibody{opacity:.62}
+
+/* Prompts */
+.prompts{counter-reset:p;list-style:none;padding:0;margin:8px 0 22px}
+.prompts li{counter-increment:p;position:relative;padding:10px 0 10px 40px;border-top:1px solid var(--rule);margin:0}
+.prompts li:last-child{border-bottom:1px solid var(--rule)}
+.prompts li::before{content:counter(p);position:absolute;left:0;top:10px;width:26px;height:26px;border-radius:50%;background:var(--chip);font-weight:700;font-size:13px;display:grid;place-items:center}
+
+.decision{background:var(--red-bg);border:1px solid color-mix(in srgb,var(--red) 40%,transparent);border-radius:10px;padding:14px 18px;margin:8px 0 22px}
+.decision b{color:var(--red)}
+
+/* Facilitator notes */
+.fac-note{background:var(--teal-bg);border:1px solid color-mix(in srgb,var(--teal) 35%,transparent);border-radius:10px;padding:16px 18px;font-size:15.5px}
+.fac-note h4{margin:0 0 6px;color:var(--teal)}
+.fac-note h4:not(:first-child){margin-top:16px}
+.fac-note ul{margin-bottom:6px}
+.ref{display:inline-block;font-size:12.5px;font-weight:600;background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:0 6px;color:var(--muted);white-space:nowrap}
+.v{background:var(--chip);border-radius:4px;padding:0 5px;font-size:.92em;color:var(--muted);font-style:italic}
+body.proj .fac-only{display:none !important}
+aside.side{position:sticky;top:calc(env(safe-area-inset-top,0px) + 72px)}
+@media (max-width:980px){aside.side{position:static}}
+
+/* Tables */
+.tbl{overflow-x:auto;margin:10px 0 20px;border:1px solid var(--rule);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:620px;font-size:15px}
+th,td{text-align:left;vertical-align:top;padding:10px 14px;border-bottom:1px solid var(--rule)}
+th{background:var(--chip);font-size:14px}
+tr:last-child td{border-bottom:0}
+
+/* Capture */
+.capbtn{position:fixed;right:20px;bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:6;font:700 15px var(--sans);background:var(--ink);color:var(--surface);border:0;border-radius:999px;padding:13px 20px;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+.drawer{position:fixed;right:20px;bottom:calc(80px + env(safe-area-inset-bottom,0px));z-index:7;width:min(380px,calc(100vw - 40px));background:var(--surface);border:1px solid var(--rule);border-radius:12px;padding:16px;box-shadow:0 12px 40px rgba(0,0,0,.28);display:none}
+.drawer.open{display:block}
+.drawer label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:10px 0 4px}
+.drawer select,.drawer textarea,.drawer input{width:100%;font:15px var(--sans);color:var(--ink);background:var(--paper);border:1px solid var(--rule);border-radius:8px;padding:8px 10px}
+.drawer textarea{min-height:88px;resize:vertical}
+.row{display:flex;gap:8px;margin-top:12px}
+.btn{font:600 14px var(--sans);border-radius:8px;padding:8px 14px;cursor:pointer;border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
+.btn.primary{background:var(--teal);border-color:var(--teal);color:#fff}
+:root[data-theme="dark"] .btn.primary{color:#0E1A1A}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .btn.primary{color:#0E1A1A}}
+.log{list-style:none;padding:0;margin:10px 0}
+.log li{background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:10px 12px;margin:0 0 8px;display:grid;grid-template-columns:auto 1fr auto;gap:4px 12px;align-items:start}
+.log .cat{font-size:12.5px;font-weight:700;border-radius:4px;padding:1px 7px;background:var(--chip);white-space:nowrap}
+.log .meta{font-size:13px;color:var(--muted);grid-column:2}
+.log .del{border:0;background:none;color:var(--muted);cursor:pointer;font-size:13px}
+.empty{color:var(--muted);font-style:italic}
+textarea.export{width:100%;min-height:140px;font:13.5px/1.5 ui-monospace,Menlo,Consolas,monospace;background:var(--surface);color:var(--ink);border:1px solid var(--rule);border-radius:8px;padding:10px}
+
+footer{padding:40px 0 120px;color:var(--muted);font-size:14px}
+
+@media print{
+  .bar,.capbtn,.drawer,.reveal,.seg,.noprint{display:none !important}
+  body{background:#fff;color:#000;font-size:11.5pt}
+  .inject .ibody{display:block !important;opacity:1 !important}
+  body.proj .fac-only{display:block !important}
+  section.mod{page-break-before:always;padding-top:0}
+  aside.side{position:static}
+  .cols{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body class="fac">
+
+<div class="bar">
+  <div class="bar-in">
+    <strong>Exercise Georgia Street</strong>
+    <nav aria-label="Exercise sections">
+      <a href="#setup">Setup</a><a href="#m1">1 · First minutes</a><a href="#m2">2 · Lockdown</a><a href="#m3">3 · Custody and release</a><a href="#m4">4 · Reopening</a><a href="#debrief">Debrief</a><a href="#annex">Annexes</a><a href="#eop">EOP reference</a>
+    </nav>
+    <div class="seg" role="group" aria-label="View mode">
+      <button type="button" id="mFac" aria-pressed="true">Facilitator</button>
+      <button type="button" id="mProj" aria-pressed="false">Projection</button>
+    </div>
+  </div>
+</div>
+
+<main class="wrap">
+
+<header class="hero">
+  <h1>Exercise Georgia Street</h1>
+  <p class="lede">A discussion-based tabletop for Vancouver campus leadership and Operations. A reported armed individual at 410 West Georgia Street (Deloitte Summit) becomes a lockdown, an evacuation by police, a building closure, and a reopening. The group talks through what it would actually do, using the Vancouver Emergency Operations Plan, the building’s emergency procedures, the Active Threat Playbook, and the Campus Operations Lead and Leadership checklists.</p>
+  <dl class="facts">
+    <div><dt>Format</dt><dd>Facilitated table read, 4 modules</dd></div>
+    <div><dt>Length</dt><dd>About 90 minutes</dd></div>
+    <div><dt>Playbook phases</dt><dd>Immediate through post-incident</dd></div>
+    <div><dt>Out of scope</dt><dd>Police tactics and threat response</dd></div>
+  </dl>
+  <div class="agenda" aria-label="Session timing">
+    <a href="#setup"><div class="mins">5 min</div><div class="nm">Welcome and ground rules</div></a>
+    <a href="#m1"><div class="mins">20 min</div><div class="nm">1 · First minutes</div></a>
+    <a href="#m2"><div class="mins">25 min</div><div class="nm">2 · Lockdown</div></a>
+    <a href="#m3"><div class="mins">20 min</div><div class="nm">3 · Custody and release</div></a>
+    <a href="#m4"><div class="mins">10 min</div><div class="nm">4 · Reopening</div></a>
+    <a href="#debrief"><div class="mins">10 min</div><div class="nm">Debrief</div></a>
+  </div>
+  <p class="noprint" style="color:var(--muted);font-size:14.5px;margin-top:18px"><b>How to run it:</b> Use <b>Facilitator</b> view on your own screen and <b>Projection</b> view on the room display. Projection hides facilitator notes and keeps each inject closed until you press <b>Reveal</b>, so the situation unfolds in stages. The note taker uses <b>Capture</b> (bottom right) to log gaps and follow-ups; everything collects in the Debrief section. Notes stay in this browser only.</p>
+</header>
+
+<!-- SETUP -->
+<section class="mod" id="setup">
+  <div class="modhead"><div class="clock">Setup</div><h2>Before you start</h2><div class="sub">Roles, ground rules, and the baseline picture</div></div>
+  <div class="cols">
+    <div>
+      <h3>Who sits at the table</h3>
+      <div class="tbl"><table>
+        <thead><tr><th>Seat</th><th>Plays</th><th>Works from</th></tr></thead>
+        <tbody>
+          <tr><td>Regional Dean and CEO</td><td>Campus Lead; Emergency Coordinator (EOP 1.2, 2.4.2)</td><td>Campus Leadership Checklist</td></tr>
+          <tr><td>Director of Operations</td><td>Operations Lead; Emergency Coordinator (EOP 1.2, 2.4.2)</td><td>Campus Operations Lead Checklist</td></tr>
+          <tr><td>Operations Coordinator</td><td>Supervisor of the front desk and Operations Assistants</td><td>Ops Lead Checklist §4–5</td></tr>
+          <tr><td>Operations Specialist</td><td>Events, space, and vendor logistics</td><td>Ops Lead Checklist §5, §7</td></tr>
+          <tr><td>Student services lead</td><td>Student support, international students, emergency contacts</td><td>Playbook Student Life annex</td></tr>
+          <tr><td>Academic / faculty lead</td><td>Classes, instructors, rosters, make-up plans</td><td>Playbook Provost and Registrar annexes</td></tr>
+          <tr><td>Local communications / marketing</td><td>Local channels, social media, inbound media</td><td>Playbook External Affairs annex</td></tr>
+          <tr><td>Allied building management and Allied Universal security <span class="v">invite if possible</span></td><td>Themselves</td><td>Building emergency procedures</td></tr>
+        <tr><td>Floor Wardens for floors 2, 14, and 15 <span class="v">if named</span></td><td>Themselves</td><td>Building warden procedures</td></tr>
+        </tbody>
+      </table></div>
+      <p>If building management can’t attend, the facilitator plays them using the response cards in Annex B. The facilitator (or a second person) also voices GSOC, Vancouver Police, a parent, and a reporter.</p>
+
+      <h3>Opening script</h3>
+      <div class="readaloud"><span class="ra-label">Read aloud</span>
+        <p>“Today we are going to walk through a realistic operational scenario using our Playbook and checklists. This is not a test of any individual. We are using the discussion to understand how we would respond, where our processes are clear, and where we may need to improve.”</p>
+        <p>“Answer from your real role and how things actually work here today, not how they should work. If you don’t know, say so; that’s a useful finding. Police tactics are out of scope. We care about our decisions, our people, and our communications. The scenario is fictional. Any resemblance to real people is not intended.”</p>
+      </div>
+
+      <h3>Baseline situation</h3>
+      <div class="readaloud"><span class="ra-label">Read aloud</span>
+        <p>It’s a Tuesday in mid-November, week 10 of the fall term. Rain all day. The time is 2:45 p.m.</p>
+        <p>On our three floors at 410 West Georgia, the 2nd, 14th, and 15th: four classes are in session with about 110 students. Roughly 25 staff and faculty are onsite. In the event space, an employer information session has about 35 attendees, including six guests from a partner organization. Two AV contractors are working in a meeting room. Two Operations Assistants are on the front desk.</p>
+        <p>Evening classes start at 6:00 p.m., with about 150 students expected. Allied, the building manager, controls the lobby, elevators, fire alarm, and emergency public address system. Its security contractor, Allied Universal, staffs the lobby concierge and the Building Response Team. Our 2nd floor sits just above the ground-floor lobby; the 14th and 15th are high in the 25-storey tower.</p>
+      </div>
+    </div>
+    <aside class="side fac-only">
+      <div class="fac-note">
+        <h4>Facilitator prep</h4>
+        <ul>
+          <li>Fill in every grey <span class="v">validate</span> item using Annex C before the session.</li>
+          <li>Bring printed copies of the Vancouver EOP, especially sections 2.4.2 to 2.4.3.4 and Annexes C and E. The EOP reference at the end of this guide summarizes its contacts and procedures.</li>
+          <li>Bring the emergency pages of the 410 West Georgia User Manual (fire alarm, wardens, evacuation, medical). The reference section at the end summarizes those too.</li>
+          <li>Print or open the two checklists for every participant. The point is to use them during discussion, not from memory.</li>
+          <li>Adjust the occupancy numbers to a real Tuesday afternoon so the accountability conversation is honest.</li>
+          <li>Agree with the note taker on the capture categories: gap, assumption, dependency, unclear ownership, campus-specific, worked well, follow-up.</li>
+        </ul>
+        <h4>Exercise objectives</h4>
+        <ol>
+          <li>Confirm the first notifications and who makes them (911 status, GSOC, Dean, building security).</li>
+          <li>Test how protective actions reach everyone on our floors.</li>
+          <li>Test accountability for students, staff, visitors, and contractors.</li>
+          <li>Clarify who decides class status, messaging, and reentry for a Global Network campus.</li>
+          <li>Test the Vancouver EOP’s active threat, fire alarm, and medical procedures against a realistic scenario.</li>
+          <li>Test how our procedures fit with the building’s alarm, warden, and security procedures.</li>
+          <li>Surface Vancouver-specific gaps in the EOP, the Playbook, and the checklists.</li>
+        </ol>
+        <h4>Sensitivity</h4>
+        <p style="margin:0">Mention at the start that people can step out at any time. Someone in the room may have lived through a real incident.</p>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- MODULE 1 -->
+<section class="mod" id="m1">
+  <div class="modhead"><div class="clock">14:52</div><h2>Module 1 · The first minutes</h2><div class="sub">Immediate response · about 20 minutes · 14:52 to 15:10</div></div>
+  <div class="cols">
+    <div>
+      <div class="injects">
+        <div class="inject" data-id="i1">
+          <div class="ihead"><span class="itime">14:52</span><span class="ititle">Call to the front desk</span><button class="reveal" type="button">Reveal</button><span class="ifrom">From: building security supervisor, by phone</span></div>
+          <div class="ibody"><p>“This is building security. We have reports of a man with a handgun in the ground-floor lobby. 911 has been called. We’re locking the lobby and recalling the elevators. Keep your people where they are.”</p><p>The line goes dead before the Operations Assistant can ask anything else. She didn’t recognize the caller’s voice, and the call came in on the general line.</p></div>
+        </div>
+        <div class="inject" data-id="i2">
+          <div class="ihead"><span class="itime">14:54</span><span class="ititle">“Do we lock the doors?”</span><button class="reveal" type="button">Reveal</button><span class="ifrom">From: a faculty member, in person at the front desk</span></div>
+          <div class="ibody"><p>An instructor walks out of a classroom to the front desk. Her students are getting texts that something is happening downstairs. She asks: “Are we locking in or leaving?”</p><p>About a dozen students are in the open student lounge, which has no door. Both Operations Assistants turn to look at the Coordinator.</p></div>
+        </div>
+        <div class="inject" data-id="i3">
+          <div class="ihead"><span class="itime">14:57</span><span class="ititle">“We should just get out”</span><button class="reveal" type="button">Reveal</button><span class="ifrom">From: students in the lounge and one classroom</span></div>
+          <div class="ibody"><p>A group of students in the open lounge wants to run for the stairwell and leave. One says the stairs come out in the laneway, nowhere near the lobby. In a 2nd-floor classroom, students are already packing up. There has been no announcement from the building, and building security isn’t answering the phone.</p></div>
+        </div>
+      </div>
+
+      <h3>Discuss</h3>
+      <ol class="prompts">
+        <li>Nobody recognized the caller. Is this threat confirmed? What does the EOP’s confirmation guidance tell us to check, and how long do we spend checking?</li>
+        <li>What are the first three things the Operations team does in the next 60 seconds? Who does each one?</li>
+        <li>How does a lockdown instruction actually reach every classroom, office, the event space, the lounge, and the washrooms on our floors? What tools do we have today? Is it different on the 2nd floor, one level above the lobby, than on the 14th and 15th?</li>
+        <li>Who calls GSOC, and when? Who tells the Dean? Do we confirm 911 has really been called?</li>
+        <li>Students want to leave by the stairs. Do our people stay or go? Is the answer the same on the 2nd floor as on the 14th and 15th? Who has the authority to tell them?</li>
+        <li>Who are our Floor Wardens today? Do they have a role in a lockdown, or only in a fire evacuation?</li>
+        <li>Open the checklist and EOP section 2.4.3.4. Do they match what we just said we would do?</li>
+      </ol>
+      <div class="decision"><b>Decision point.</b> By 15:00, what instruction has reached every room on our floors, including the lounge, who gave it, and through what channel?</div>
+    </div>
+    <aside class="side fac-only">
+      <div class="fac-note">
+        <h4>What good looks like</h4>
+        <ul>
+          <li>Run the EOP’s confirmation tests: two or more independent sources, cues someone can see or hear, or word from law enforcement or property management. A call from building security can meet the third, if it really was building security. Then act; don’t wait for certainty. <span class="ref">EOP 2.4.3.4</span></li>
+          <li>Personal safety first; nobody goes down to the lobby to look. <span class="ref">Ops §1</span></li>
+          <li>Follow the protective action building security gave: stay and secure. Lock or barricade, lights off, phones silent, away from doors. <span class="ref">Ops §4</span> <span class="ref">EOP Annex C</span></li>
+          <li>Confirm 911 has been called; don’t assume. Anyone calling 911 stays on the line through the transfer clicks; hanging up creates an incomplete 911 call. Notify GSOC as soon as it’s safe. Notify the Dean. <span class="ref">Ops §2</span> <span class="ref">Building manual</span></li>
+          <li>Try to re-establish contact with building security. <span class="ref">Ops §3</span></li>
+          <li>Begin a quiet headcount of who is where, including the lounge group and the contractors. <span class="ref">Ops §5</span></li>
+          <li>Use a code word or the Operations group chat to alert colleagues quietly. <span class="ref">EOP 2.4.3.4</span></li>
+          <li>The Regional Dean and/or Director of Operations, as Emergency Coordinator, activate the emergency response procedure and assemble the Vancouver Team, in person or virtually. <span class="ref">EOP 2.4.2</span></li>
+          <li>Start a written log with times.</li>
+        </ul>
+        <h4>Run or hide</h4>
+        <p>Don’t give the group an answer, but have the facts ready. The EOP’s guidance is Run, Hide, Fight: run if it is safe to do so, otherwise hide. Building security told everyone to stay where they are. The suspect’s location is unknown, the stairwells run the full height of the tower, and police arriving may not be able to tell students from a suspect. <span class="ref">EOP 2.4.3.4</span></p>
+        <p>The 15th floor is a crossover floor, where stairwell doors are left unlocked, so the stairwell could be a way in as well as a way out. <span class="ref">EOP 2.4.3.1</span> The building manual has no lockdown procedure. If the room can’t agree, log it for Allied and OEM.</p>
+        <h4>Listen for</h4>
+        <ul>
+          <li>No reliable way to reach every room at once.</li>
+          <li>Who can send an NU Alert for Vancouver. The EOP says emergency notifications go out through NUPD or Campus Operations. Does anyone here have access, and is there a template? <span class="ref">EOP 1.2</span></li>
+          <li>The Playbook gives lockdown decisions to NUPD and Incident Command. The EOP says follow Vancouver Police instructions exactly once they arrive. Before they arrive, who decides: building security, the Emergency Coordinator, or each room?</li>
+          <li>Terminology. The EOP defines “lock down” as locking exterior doors and “shelter-in-place” as moving to a lockable room. Most people use “lockdown” for the second. Does everyone mean the same thing?</li>
+          <li>Whether we have named Floor Wardens for each of our floors, as the building’s procedures expect, and whether anyone has asked Allied to use the Emergency Public Address system for a lockdown announcement.</li>
+          <li>Whether the front desk is a safe place to stay.</li>
+        </ul>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- MODULE 2 -->
+<section class="mod" id="m2">
+  <div class="modhead"><div class="clock">15:10</div><h2>Module 2 · Lockdown</h2><div class="sub">Short-term response · about 25 minutes · 15:10 to 16:15</div></div>
+  <div class="cols">
+    <div>
+      <div class="readaloud"><span class="ra-label">Read aloud</span>
+        <p>It’s 3:10 p.m. Vancouver Police officers are inside the building. Police vehicles have closed West Georgia Street between Richards and Homer.</p>
+        <p>Building security texts the Director of Operations: one person was injured in the lobby and taken away by paramedics. The suspect went further into the building. Location unknown. All floors are to stay locked down until police say otherwise.</p>
+        <p>Our floors are secured. Phones and Wi-Fi are working.</p>
+      </div>
+      <div class="injects">
+        <div class="inject" data-id="i4">
+          <div class="ihead"><span class="itime">15:12</span><span class="ititle">GSOC wants numbers</span><button class="reveal" type="button">Reveal</button><span class="ifrom">From: GSOC duty officer, to the Director of Operations</span></div>
+          <div class="ibody"><p>“We’re tracking a police incident at your address. I need your status, which floors are affected, what protective action you’re in, how many people you have onsite, any injuries, and anyone needing help. Can you get me numbers in the next ten minutes?”</p></div>
+        </div>
+        <div class="inject" data-id="i5">
+          <div class="ihead"><span class="itime">15:20</span><span class="ititle">The headcount doesn’t add up</span><button class="reveal" type="button">Reveal</button><span class="ifrom">From: Operations Coordinator and instructors, by Teams and text</span></div>
+          <div class="ibody"><p>The event organizer has a sign-in sheet, but at least four of the six partner guests never signed in. One instructor’s roster shows 32; she counts 27 in the room. One Operations Assistant had stepped out for coffee and is now on the street outside the police line, texting to ask whether she should come back in.</p><p>A student who uses a wheelchair is in a classroom on the 15th floor. The elevators are recalled.</p></div>
+        </div>
+        <div class="inject" data-id="i6">
+          <div class="ihead"><span class="itime">15:25</span><span class="ititle">“Multiple people shot”</span><button class="reveal" type="button">Reveal</button><span class="ifrom">From: social media, the main phone line, and the general inbox</span></div>
+          <div class="ibody"><p>A video of police in the lobby is circulating, captioned “multiple people shot at Northeastern Vancouver.” Students in lockdown are sharing it. The local campus line, forwarded to the Operations desk, rings: a parent, crying, asks whether her son is alive. A local reporter emails the general inbox asking for confirmation and a comment.</p></div>
+        </div>
+        <div class="inject" data-id="i6b">
+          <div class="ihead"><span class="itime">15:28</span><span class="ititle">A medical emergency in lockdown</span><button class="reveal" type="button">Reveal</button><span class="ifrom">From: Operations Specialist, by Teams</span></div>
+          <div class="ibody"><p>On the 14th floor, a staff member sheltering in a meeting room has collapsed and hit his head. He’s conscious but confused. The first aid kit is in the 1405B storage closet down the hall, and the AED is near the 14th-floor fire exit. Police still haven’t located the suspect.</p></div>
+        </div>
+        <div class="inject" data-id="i7">
+          <div class="ihead"><span class="itime">15:35</span><span class="ititle">The SCT call is scheduled</span><button class="reveal" type="button">Reveal</button><span class="ifrom">From: GSOC</span></div>
+          <div class="ibody"><p>GSOC confirms the incident has been declared Level 1 and an SCT call is scheduled for 3:45 p.m. Global Network leadership will join. The SCT lead wants to hear from Vancouver on two things: whether 6:00 p.m. classes and tonight’s events go ahead, and what Vancouver students and staff have been told so far, and by whom.</p></div>
+        </div>
+      </div>
+
+      <h3>Discuss</h3>
+      <ol class="prompts">
+        <li>Who builds the accountability numbers for GSOC, and how? What do we report when the numbers have gaps?</li>
+        <li>What do we tell the Operations Assistant outside the police line? The student who can’t use the stairs?</li>
+        <li>What does the person answering the phone say to the parent? To the reporter? Who has approved those words?</li>
+        <li>A colleague is hurt in a locked room. Who goes for the first aid kit, who calls 911, and how do paramedics reach the 14th floor while the suspect is at large?</li>
+        <li>Who represents Vancouver on the SCT call, and who keeps the floor running while they’re on it?</li>
+        <li>What would we recommend about 6:00 p.m. classes, who has to agree, and how do 150 students who haven’t arrived yet find out?</li>
+        <li>Which checklist item are we least able to complete right now? Why?</li>
+      </ol>
+      <div class="decision"><b>Decision point.</b> What does Vancouver recommend on the 3:45 call about evening classes and events, and what message, if any, goes to students and staff before the SCT clears one?</div>
+    </div>
+    <aside class="side fac-only">
+      <div class="fac-note">
+        <h4>What good looks like</h4>
+        <ul>
+          <li>Report what’s known, what isn’t, and when the next update comes. Partial numbers with a stated method beat a guess. <span class="ref">Quick Ref: what GSOC/SCT will request</span></li>
+          <li>Tell the off-site staff member to stay away from the scene, get somewhere safe, and check in. <span class="ref">Ops §5</span></li>
+          <li>Ask the Building Concierge for its visitor check-in record; it may account for event guests who never signed our sheet. <span class="ref">Building manual</span></li>
+          <li>Report the student’s location to building security or police and keep her sheltered where she is. For a fire, the EOP points to a stairwell area of refuge and the building manual to the pressurized elevator lobby; in an active threat, a locked room is likely safer. <span class="ref">Ops §4–5</span></li>
+          <li>Medical in lockdown: call 911, say it’s a medical emergency inside the active threat building, and follow the call-taker’s first aid instructions. Normally the next call is to building security (604-341-0359 or 604-841-3564), who send someone to meet paramedics and hold an elevator. With security caught up in the police response, that may not happen, and nobody should leave a secured room to do it. <span class="ref">EOP 2.4.3.2</span> <span class="ref">Building manual</span></li>
+          <li>Don’t call police for updates; information comes through the SCT. <span class="ref">Playbook §6 Reminders</span></li>
+          <li>No unverified details to the parent or reporter. Take contact details, route to the approved owner, and hold local messaging until it’s cleared. <span class="ref">Leadership: Short-term</span> <span class="ref">Playbook §2</span></li>
+          <li>The Dean or designee joins the SCT; the Director keeps a running situation picture. <span class="ref">Ops §6</span></li>
+        </ul>
+        <h4>Who decides</h4>
+        <p>Moving Vancouver to remote operations follows the EOP chain: the SCT and the Campus Lead and/or Operations Lead build a recommendation, the SVP for Global Network challenges it, the SLT approves, and the President is updated. <span class="ref">EOP 1.2</span></p>
+        <p>Under the Playbook, class status sits with the Provost and academic leadership, and public messaging with External Affairs. The Global Network checklist is still marked “in progress” in the draft Playbook, so expect some uncertainty and log it.</p>
+        <h4>Listen for</h4>
+        <ul>
+          <li>Event guests and contractors missing from the accountability method.</li>
+          <li>Whether we can legally and quickly share rosters with police. Who approves that here?</li>
+          <li>No pre-approved holding statement, even though the EOP calls for standard language agreed in advance with the SVP for Global Network and the SCT. <span class="ref">EOP 1.2</span></li>
+          <li>Who presses send. The EOP has the Campus Lead or Operations Lead initiate the communication plan; the Playbook holds all messaging until External Affairs clears it.</li>
+          <li>Whether the key contacts database the EOP calls for exists, and whether someone can open it from a locked room. <span class="ref">EOP 1.2</span></li>
+          <li>Incident level. The EOP lists active threat as a Level 1 example; the draft Playbook could call this Level 2. Does the level change anything Vancouver does?</li>
+          <li>The phone line falling to an Operations Assistant with no script.</li>
+          <li>Two or three people all trying to be the voice to GSOC.</li>
+        </ul>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- MODULE 3 -->
+<section class="mod" id="m3">
+  <div class="modhead"><div class="clock">16:15</div><h2>Module 3 · Custody and release</h2><div class="sub">Ongoing response into stabilization · about 20 minutes · 16:15 to 20:00</div></div>
+  <div class="cols">
+    <div>
+      <div class="readaloud"><span class="ra-label">Read aloud</span>
+        <p>At 4:15 p.m., building security confirms that police have a suspect in custody on another tenant’s floor. Police don’t believe anyone else was involved.</p>
+        <p>The lobby and parts of the building are now a crime scene. Officers will clear and release the building floor by floor. Occupants will leave by a core stairwell to the laneway, as police direct, not through the lobby. They must leave bags and laptops behind. Some people will be asked to stay and give statements.</p>
+      </div>
+      <div class="injects">
+        <div class="inject" data-id="i8">
+          <div class="ihead"><span class="itime">16:25</span><span class="ititle">Police need a point person</span><button class="reveal" type="button">Reveal</button><span class="ifrom">From: a Vancouver Police officer, at the Operations desk</span></div>
+          <div class="ibody"><p>“We’re bringing your floors down in about twenty minutes. I need a list of everyone who was up here and one person from your side I can work with. We’ll need somewhere off the street for people while we take statements.”</p><p>It’s raining. Many students are international, live alone, and have no family in Canada. Partners, spouses, and friends are arriving at the police line asking about people they can’t reach. Several students and staff need to leave as soon as possible to pick up their own children.</p></div>
+        </div>
+        <div class="inject" data-id="i9">
+          <div class="ihead"><span class="itime">16:40</span><span class="ititle">A camera at the police line</span><button class="reveal" type="button">Reveal</button><span class="ifrom">From: a TV crew, and the student community channel</span></div>
+          <div class="ibody"><p>A camera crew spots a staff member’s Northeastern lanyard as she exits and asks her for a comment on camera. On the student community channel, students ask whether there’s class tomorrow and whether they’re going to be penalized for missing an exam on Thursday.</p></div>
+        </div>
+        <div class="inject" data-id="i10">
+          <div class="ihead"><span class="itime">17:30</span><span class="ititle">The building is closed</span><button class="reveal" type="button">Reveal</button><span class="ifrom">From: Allied building management, by email to all tenants</span></div>
+          <div class="ibody"><p>The building is closed to all tenants for at least 48 hours. There is broken glass in the lobby. Our floors weren’t physically damaged, but police haven’t released them. No one can come back for belongings tonight.</p><p>Among the things left upstairs: house keys, a student’s medication, two passports from a study permit appointment earlier in the day, and the Operations team’s master keys.</p></div>
+        </div>
+      </div>
+
+      <h3>Discuss</h3>
+      <ol class="prompts">
+        <li>Who is our single point of contact with police on scene? What can we give them, and who approves sharing student or staff lists?</li>
+        <li>Where do people go while police take statements, and where do they meet partners, friends, or colleagues who come looking for them? How do we handle someone who has to leave to pick up a child? Who runs that? Is this location written down anywhere today?</li>
+        <li>How do we close accountability and report “all accounted for” with confidence? Who signs off?</li>
+        <li>What does the staff member say to the camera crew? What would we have wanted her to know beforehand?</li>
+        <li>What is Vancouver’s operating model for tomorrow and the next two days? Who proposes it, who approves it, and how do students and staff hear about it tonight?</li>
+        <li>What do we do tonight for people who can’t get into their homes, need their medication, or have lost their documents? What do we do for our own staff, especially the front desk?</li>
+      </ol>
+      <div class="decision"><b>Decision point.</b> By 8:00 p.m., what has been decided and communicated about tomorrow, and who approved it?</div>
+    </div>
+    <aside class="side fac-only">
+      <div class="fac-note">
+        <h4>What good looks like</h4>
+        <ul>
+          <li>One named liaison to police; the Director of Operations remains the primary campus contact for GSOC, building management, and responders. <span class="ref">Ops §6</span></li>
+          <li>Accountability reconciled against rosters, staff lists, event sign-ins, and contractor records, then reported to the Dean and GSOC. <span class="ref">Ops §5</span></li>
+          <li>Only the designated spokesperson speaks to media. Staff have a one-line response ready. <span class="ref">Playbook §6</span></li>
+          <li>Remote or alternate operations follow the EOP chain: recommendation to the SVP for Global Network, then SLT approval. <span class="ref">EOP 1.2</span> <span class="ref">Leadership: Ongoing</span></li>
+          <li>Bring in the Senior Director of Global Site Security. The EOP says Vancouver complies with the Clery Act under their guidance, which covers crime reporting and any timely warning. <span class="ref">EOP 1.2</span></li>
+          <li>Student support, counseling, and employee assistance offered tonight, not just tomorrow. <span class="ref">Playbook §5 People and community</span></li>
+          <li>Decisions logged with who, when, and on what information. <span class="ref">Playbook §1</span></li>
+        </ul>
+        <h4>Listen for</h4>
+        <ul>
+          <li>The EOP’s assembly area, east toward Library Square, was planned for fire evacuation. Is an open plaza right for an active threat, in the rain, with media nearby? Is there an indoor alternative? <span class="ref">EOP 2.4.3.1</span></li>
+          <li>Follow-up on the colleague hurt on the 14th floor. The EOP lists St. Paul’s and Vancouver General as nearby hospitals.</li>
+          <li>Reentry authority: building management, police, GSOC/OEM, or the Dean? The checklist says to confirm who controls it. Do we know?</li>
+          <li>International students and the Playbook’s mention of immigration support. Who handles passport and study permit concerns locally?</li>
+          <li>Master keys and access credentials left behind.</li>
+          <li>Whether privacy obligations for sharing rosters with Canadian police are understood. Route questions to OGC rather than resolving them in the room.</li>
+        </ul>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- MODULE 4 -->
+<section class="mod" id="m4">
+  <div class="modhead"><div class="clock">Day 3</div><h2>Module 4 · Reopening</h2><div class="sub">Stabilization and post-incident · about 10 minutes · Thursday through the following week</div></div>
+  <div class="cols">
+    <div>
+      <div class="readaloud"><span class="ra-label">Read aloud</span>
+        <p>It’s Thursday morning. Police released the scene last night. Building management plans to reopen to tenants on Friday at 7:00 a.m. after the lobby glass is replaced. The injured person, an employee of another tenant, is in stable condition. Classes have been remote since Wednesday.</p>
+      </div>
+      <div class="injects">
+        <div class="inject" data-id="i11">
+          <div class="ihead"><span class="itime">Thu 09:00</span><span class="ititle">“Are we open Friday?”</span><button class="reveal" type="button">Reveal</button><span class="ifrom">From: building management, GSOC, and staff</span></div>
+          <div class="ibody"><p>Allied says tenants may return Friday. GSOC and OEM want a walk-through of our floors first. Two staff members tell their manager they aren’t ready to come back. Several students ask to finish the term remotely.</p></div>
+        </div>
+        <div class="inject" data-id="i12">
+          <div class="ihead"><span class="itime">Fri 10:00</span><span class="ititle">Belongings and a missing laptop</span><button class="reveal" type="button">Reveal</button><span class="ifrom">From: the Operations desk</span></div>
+          <div class="ibody"><p>Dozens of people want their things back at once. One student says her laptop is gone from the classroom where she left it.</p></div>
+        </div>
+        <div class="inject" data-id="i13">
+          <div class="ihead"><span class="itime">+1 week</span><span class="ititle">The after-action ask</span><button class="reveal" type="button">Reveal</button><span class="ifrom">From: OEM</span></div>
+          <div class="ibody"><p>OEM asks for Vancouver’s after-action summary. Staff say the front desk felt exposed and want a lockable space and a way to alert every room at once. Both cost money.</p></div>
+        </div>
+      </div>
+
+      <h3>Discuss</h3>
+      <ol class="prompts">
+        <li>Who says Northeastern Vancouver is open again, and what has to be true first?</li>
+        <li>What does the facility walk-through check, and who goes? <span class="noprint">(Use Ops Checklist §7.)</span></li>
+        <li>How do we handle people who aren’t ready to return, and what is the plan for the Thursday exam?</li>
+        <li>How do we run belongings retrieval in an orderly way, and who handles the missing laptop?</li>
+        <li>Which follow-ups can Vancouver fix itself, and which need Global Network or OEM?</li>
+      </ol>
+    </div>
+    <aside class="side fac-only">
+      <div class="fac-note">
+        <h4>What good looks like</h4>
+        <ul>
+          <li>Reentry coordinated with responders, GSOC, OEM, and building management. A building reopening is not automatically a Northeastern reopening. <span class="ref">Leadership: Stabilization</span></li>
+          <li>Walk-through with responder approval; note damage, alarm status, access, and security concerns, time-stamped. <span class="ref">Ops §7</span></li>
+          <li>Phased return communicated through approved channels. <span class="ref">Leadership: Stabilization</span></li>
+          <li>Support and flexibility for people not ready to return, coordinated with HR and student services. <span class="ref">Leadership: Post-incident</span></li>
+          <li>Restock the 1405B first aid kit and check the 14th-floor AED. <span class="ref">EOP 2.4.3.2</span></li>
+          <li>Corrective actions tracked with owners and dates, split into local and network-level, including updates to the Vancouver EOP. <span class="ref">Leadership: Post-incident</span></li>
+        </ul>
+        <h4>Keep it short</h4>
+        <p style="margin:0">This module is time-boxed. If it opens a long discussion, capture it as a follow-up and move to the debrief.</p>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- DEBRIEF -->
+<section class="mod" id="debrief">
+  <div class="modhead"><div class="clock">Debrief</div><h2>Hotwash</h2><div class="sub">About 10 minutes, before anyone leaves</div></div>
+  <div class="cols">
+    <div>
+      <ol class="prompts">
+        <li>What worked well?</li>
+        <li>What was unclear or difficult?</li>
+        <li>What’s missing from the Playbook or the checklists for Vancouver?</li>
+        <li>Who owns what we couldn’t answer today?</li>
+        <li>What are the top three to five follow-ups, and who takes each one?</li>
+      </ol>
+
+      <h3>Captured during the session</h3>
+      <p class="noprint" style="color:var(--muted);font-size:15px">Everything logged with Capture appears here, grouped by when it was recorded. Copy the text below into the after-action materials for OEM.</p>
+      <ul class="log" id="log"></ul>
+      <div class="noprint">
+        <label for="export" style="font-weight:600;font-size:14px">Copy-ready summary</label>
+        <textarea class="export" id="export" readonly></textarea>
+        <div class="row"><button class="btn primary" type="button" id="copyBtn">Copy summary</button><button class="btn" type="button" id="resetBtn">Clear notes and reveals</button></div>
+      </div>
+    </div>
+    <aside class="side fac-only">
+      <div class="fac-note">
+        <h4>After the session</h4>
+        <ul>
+          <li>Complete the observation and after-action materials.</li>
+          <li>Send the summary and any Playbook or checklist recommendations to OEM.</li>
+          <li>Escalate issues that need Global Network review.</li>
+          <li>Share answers back with the local team once they come in.</li>
+        </ul>
+        <h4>Success looks like</h4>
+        <p style="margin:0">A team that can use the checklist in a realistic discussion and knows exactly where local procedures need clarifying. Not a team that got every answer right.</p>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- ANNEXES -->
+<section class="mod" id="annex">
+  <div class="modhead"><div class="clock">Annexes</div><h2>Facilitator reference</h2><div class="sub">Simulated voices, validation, and known gaps</div></div>
+
+  <h3>Annex A · Inject summary</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Time</th><th>Inject</th><th>Primarily tests</th></tr></thead>
+    <tbody>
+      <tr><td>14:52</td><td>Security call: armed person in lobby</td><td>First actions, notifications, protective actions</td></tr>
+      <tr><td>14:54</td><td>Instructor asks what to do; open lounge</td><td>Getting instructions to every space</td></tr>
+      <tr><td>14:57</td><td>Students want to leave by the stairs</td><td>Run or hide, authority, differences between floors</td></tr>
+      <tr><td>15:12</td><td>GSOC asks for numbers</td><td>Situation reporting</td></tr>
+      <tr><td>15:20</td><td>Headcount gaps, staff outside, mobility need</td><td>Accountability, people needing assistance</td></tr>
+      <tr><td>15:25</td><td>False social media post, parent, reporter</td><td>Verified information, approved messaging</td></tr>
+      <tr><td>15:28</td><td>Staff member injured during lockdown</td><td>EOP medical response under active threat conditions</td></tr>
+      <tr><td>15:35</td><td>Level 1 SCT call</td><td>Escalation, decision rights, evening classes</td></tr>
+      <tr><td>16:25</td><td>Police need a point person and a holding location</td><td>Responder liaison, reunification, roster sharing</td></tr>
+      <tr><td>16:40</td><td>Media at police line; student questions</td><td>Spokesperson discipline, academic continuity</td></tr>
+      <tr><td>17:30</td><td>48-hour closure; belongings left behind</td><td>Continuity, alternate operations, care</td></tr>
+      <tr><td>Day 3</td><td>Reopening, retrieval, after-action</td><td>Reentry authority, recovery, corrective actions</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Annex B · Response cards for simulated voices</h3>
+  <p>When participants “call” someone who isn’t in the room, the facilitator answers in character. Stay realistic: responders are busy and give short answers.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Voice</th><th>Will say</th><th>Won’t say</th></tr></thead>
+    <tbody>
+      <tr><td>Building security (Allied Universal)</td><td>“Stay locked down.” “Police are inside.” “Elevators are recalled.” Answers about building systems only if asked directly.</td><td>Suspect location, timeline, or when it will end.</td></tr>
+      <tr><td>Vancouver Police (911 or on scene)</td><td>“Stay where you are.” “We’ll come to you.” Asks for headcount, floor layout, and access methods.</td><td>Any update on the suspect or injuries. If a participant calls for status, say: “I can’t give you that. Stay secured.”</td></tr>
+      <tr><td>GSOC duty officer</td><td>Asks for the Quick Reference information. Gives the SCT call time and incident level when known. Asks who the single point of contact is.</td><td>Tactical details, or decisions on Vancouver’s behalf.</td></tr>
+      <tr><td>Parent</td><td>Emotional and insistent. “Just tell me if he’s okay.” Threatens to drive downtown.</td><td>Accepts a vague answer quietly. Push until the participant gives a clear, compassionate script.</td></tr>
+      <tr><td>Reporter</td><td>“We’re hearing multiple victims. Can you confirm?” “Who can speak on the record?” Calls back if ignored.</td><td>Goes away without a contact name.</td></tr>
+      <tr><td>Allied building management</td><td>Building-wide status, closure length, glass repair, tenant reentry time.</td><td>Whether Northeastern specifically is ready to reopen.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Annex C · Validate before the session</h3>
+  <p>From the Campus Validation Checklist, with answers from the Vancouver EOP filled in where it has them. Confirm those are current and fill in the rest.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Item</th><th>Vancouver answer</th></tr></thead>
+    <tbody>
+      <tr><td>Primary and alternate Operations point of contact</td><td>Primary: Director of Operations, as Operations Lead (EOP 1.2). Alternate: <span class="v">validate</span></td></tr>
+      <tr><td>Vancouver Team members and roles</td><td><span class="v">validate</span> (EOP 1.2 describes the team but doesn’t name members)</td></tr>
+      <tr><td>Floors and areas Northeastern occupies</td><td>2nd, 14th, and 15th floors, 410 West Georgia Street (EOP 2.1)</td></tr>
+      <tr><td>Building management and security contacts, hours, and after-hours coverage</td><td>Building security, 24/7: 604-341-0359 or 604-841-3564. Security contractor: Allied Universal. Allied main contact: Oliver Yau, Senior Manager, Portfolio Operations, mobile 236-339-2309, oyau@alliedreit.com. Entry is by access card only after 9:00 p.m.</td></tr>
+      <tr><td>Building lockdown, fire alarm, and voice communication procedures</td><td>Two-stage fire alarm, with automatic full evacuation after five minutes unless found false; Emergency Public Address reaches all areas; elevators return to the main floor and lock out; crossover floors 5, 10, 15, 19, 24 (building manual, EOP 2.4.3.1). Lockdown procedure: not in the tenant manual. Ask Allied for its full Emergency Response Plan: <span class="v">validate</span></td></tr>
+      <tr><td>How lockdown instructions reach every room (PA, Teams, NU Alert, runners)</td><td><span class="v">validate</span></td></tr>
+      <tr><td>NU Alert coverage and who can send</td><td>Email and text to everyone whose contact information is associated with the campus; enrollment through Student Hub and Workday (EOP 1.2). Who can send for Vancouver: <span class="v">validate</span></td></tr>
+      <tr><td>Lockable spaces, and spaces that can’t be secured</td><td><span class="v">validate</span></td></tr>
+      <tr><td>Accountability method for students, staff, visitors, event guests, contractors</td><td><span class="v">validate</span></td></tr>
+      <tr><td>Off-site holding and reunification location</td><td>Fire assembly: east of the building toward Library Square; report floor status to the Incident Commander at West Georgia and Homer (EOP 2.4.3.1). Active threat holding and reunification location: <span class="v">validate</span></td></tr>
+      <tr><td>Alternate operating and remote learning options</td><td>Approval chain in EOP 1.2. Logistics: <span class="v">validate</span></td></tr>
+      <tr><td>Reentry authority and reopening approval process</td><td><span class="v">validate</span></td></tr>
+      <tr><td>Approved local spokesperson and media line</td><td><span class="v">validate</span></td></tr>
+      <tr><td>Key contacts database (EOP 1.2): where it lives and who can open it during an incident</td><td><span class="v">validate</span></td></tr>
+      <tr><td>First aid kit and AED</td><td>First aid kit in the 1405B storage closet; AED on the 14th floor near the fire exit (EOP 2.4.3.2). Equivalents on floors 2 and 15: <span class="v">validate</span>. Allied security staff are first-aid trained (building manual).</td></tr>
+      <tr><td>Floor Wardens, Assistant Floor Wardens, Stairwell, Assistance, and Searcher roles for floors 2, 14, and 15, and attendance at the building’s annual warden training</td><td><span class="v">validate</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Annex D · Known gaps worth probing</h3>
+  <p>These come from reading the draft Playbook and the Global Network checklists against the Vancouver EOP. Use them to steer discussion, not to lead the group to answers.</p>
+  <ul>
+    <li><b>Who decides before police arrive.</b> The Playbook gives lockdown and building access decisions to NUPD and Incident Command. The EOP says follow Vancouver Police exactly once they arrive, and makes the Campus Lead and/or Operations Lead the Emergency Coordinator. The gap is the minutes in between, and how those decisions are shared with building security.</li>
+    <li><b>Global Network checklist is “in progress.”</b> The Playbook’s Global Network section asks who holds command at a location outside Boston. Vancouver’s answer should feed that checklist.</li>
+    <li><b>Sending NU Alert.</b> The EOP says emergency notifications go out through NUPD or Campus Operations. Confirm who in Vancouver can actually send one, and whether a pre-approved active threat template exists.</li>
+    <li><b>Terminology.</b> The EOP and the Playbook both use Run, Hide, Fight. But the EOP defines “lock down” as locking exterior doors and “shelter-in-place” as moving to a lockable room, close to the reverse of everyday usage. Confirm what building security means when they say it.</li>
+    <li><b>Privacy and records.</b> The EOP confirms the campus follows the Clery Act under the Senior Director of Global Site Security. Releasing rosters to Canadian police still raises questions for OGC and the Registrar about FERPA and applicable British Columbia law.</li>
+    <li><b>Multi-tenant building.</b> A building reopening is not the same as a campus reopening. The checklist says to confirm who controls reentry; make sure the answer is written down.</li>
+    <li><b>Local support services.</b> Employee assistance, counseling, and immigration support named in the Playbook need Canadian equivalents and contacts.</li>
+    <li><b>Fire alarm during an active threat.</b> Per the EOP, doors above street level unlock in a fire, and the 15th floor is a crossover floor with unlocked stairwell doors. The EOP doesn’t say what to do when an alarm sounds during an active threat.</li>
+    <li><b>Elevators and stairwells.</b> The building manual confirms elevators return to the main floor on any alarm and lock out until reset, so the EOP’s Elevators section needs correcting. The EOP and the manual also number the tower stairwells differently. Confirm against the signage.</li>
+    <li><b>Incident level.</b> The EOP names active threat as a Level 1 example; the draft Playbook allows Level 2 for a lockdown with operational impact. Align the two.</li>
+    <li><b>Who sends local messages.</b> The EOP has the Campus Lead or Operations Lead initiate the communication plan. The Playbook holds all messaging until External Affairs clears it. Agree the sequence in advance.</li>
+    <li><b>Address in the network checklist.</b> The Global Network checklist lists Vancouver at 140 West Georgia Street; the EOP gives 410 West Georgia. Send the correction to OEM.</li>
+    <li><b>Landlord change.</b> The EOP still lists Westbank under Building Operations (section 2.2). Update it to Allied with the 24/7 building security numbers and Oliver Yau as the main contact.</li>
+    <li><b>No building lockdown procedure.</b> The building manual covers fire, medical, bomb threat, and earthquake, but not an active threat or lockdown. Ask Allied for its full Emergency Response Plan and whether the Emergency Public Address system can be used for lockdown announcements.</li>
+    <li><b>Floor Wardens.</b> The building expects each tenant to name Floor Wardens and related roles and attend annual warden training. Confirm who fills these roles on floors 2, 14, and 15.</li>
+  </ul>
+</section>
+
+<section class="mod" id="eop">
+  <div class="modhead"><div class="clock">EOP</div><h2>EOP and building reference</h2><div class="sub">Contacts and procedures from the Vancouver EOP (2026) and the 410 West Georgia User Manual (Allied, November 2024)</div></div>
+  <h3>Contacts</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Who</th><th>Contact</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr><td>Police, fire, ambulance</td><td>911</td><td>2.2</td></tr>
+      <tr><td>Vancouver Police non-emergency</td><td>(604) 717-3321</td><td>EOP 2.2</td></tr>
+      <tr><td>BC Ambulance non-emergency</td><td>604-872-5151</td><td>Building manual</td></tr>
+      <tr><td>Vancouver Fire Rescue non-emergency</td><td>604-665-6000</td><td>Building manual</td></tr>
+      <tr><td>Building security (Allied Universal), 24/7</td><td>604-341-0359 · 604-841-3564</td><td>Update to EOP 2.2</td></tr>
+      <tr><td>Allied property management office</td><td>604-683-5002</td><td>Building manual</td></tr>
+      <tr><td>Allied main contact: Oliver Yau, Senior Manager, Portfolio Operations</td><td>Mobile 236-339-2309 · oyau@alliedreit.com · 128 West Pender Street, Suite 800, Vancouver, BC V6B 1R8</td><td>Update to 2.2</td></tr>
+      <tr><td>GSOC</td><td>(617) 373-5000 · toll-free emergency +1 833-373-3303 · NUglobalops@northeastern.edu</td><td>2.2</td></tr>
+      <tr><td>NUPD (Boston)</td><td>Emergency (617) 373-3333 · non-emergency (617) 373-2121</td><td>2.2</td></tr>
+      <tr><td>St. Paul’s Hospital</td><td>1081 Burrard Street · (604) 682-2344</td><td>2.2</td></tr>
+      <tr><td>Vancouver General Hospital</td><td>899 West 12th Avenue · (604) 875-4111</td><td>2.2</td></tr>
+      <tr><td>Campus line (inquiries)</td><td>+1 604-328-7454</td><td>2.1</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Procedures used in this exercise</h3>
+  <p>Section numbers refer to the EOP.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Topic</th><th>What the plans say</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr><td>Emergency Coordinator</td><td>The Campus Lead and/or Operations Lead serve as Emergency Coordinator and decide whether to activate the emergency response procedure. The Vancouver Team then assembles in person or virtually. The Operations Lead runs on-the-ground response and briefs the Campus Lead.</td><td>2.4.2</td></tr>
+      <tr><td>Confirming a threat</td><td>Check for two or more independent sources, cues you can see or hear, or word from law enforcement or property management. Use a code word or group chat to alert colleagues; complete the Active Threat Caller Checklist for threat calls.</td><td>2.4.3.4, Annex E</td></tr>
+      <tr><td>Active threat</td><td>Dial 911 and alert on-site security. Run, Hide, Fight. Follow Vancouver Police instructions exactly when they arrive.</td><td>2.4.3.4, Annex C</td></tr>
+      <tr><td>Protective action terms</td><td>Shelter-in-place: move to a room or area that can be locked or secured. Lock down: lock exterior doors and entrances. Evacuation: urgent exit away from the threat.</td><td>2.4.1</td></tr>
+      <tr><td>Fire alarm</td><td>Two stages: an alert while the Building Response Team investigates, then full evacuation automatically after five minutes unless the alarm is found false, with automated announcements. Elevators return to the main floor and lock out. Exit by the core stairwells to the laneway, never through the lobby. Doors above street level unlock in a fire. Crossover floors are 5, 10, 15, 19, and 24.</td><td>2.4.3.1; building manual</td></tr>
+      <tr><td>Building emergency roles</td><td>A Fire Safety Director coordinates the Building Response Team (security and building operators). Each tenant provides a Floor Warden, Assistant Floor Warden, Stairwell Monitors, Assistance Monitors, and Searchers, who report to the Fire Safety Director at the assembly area.</td><td>Building manual</td></tr>
+      <tr><td>Mobility limitations</td><td>In a fire, the EOP names an area of refuge in the stairwell. The building manual names a wait area in the pressurized elevator lobby, where an Assistance Monitor stays with the person until firefighters arrive.</td><td>2.4.3.1; building manual</td></tr>
+      <tr><td>Assembly</td><td>East of the building toward Library Square. Report floor status to the Incident Commander near the lobby entrance at West Georgia and Homer.</td><td>2.4.3.1</td></tr>
+      <tr><td>Medical</td><td>Call 911 and security; give location, number of people, and condition; follow the call-taker’s first aid instructions; hold an elevator and send someone to meet responders. First aid kit in 1405B; AED on the 14th floor near the fire exit. The building adds: after 911, call building security, who send someone to meet the ambulance and hold an elevator.</td><td>2.4.3.2; building manual</td></tr>
+      <tr><td>911 calls</td><td>Calls go to E-Comm, which asks “Police, Fire or Ambulance?” and the city, then transfers. Stay on the line through the clicks; hanging up creates an incomplete 911 call.</td><td>Building manual</td></tr>
+      <tr><td>Remote operations</td><td>SCT with the Campus Lead and/or Operations Lead recommends; the SVP for Global Network challenges and refines; the SLT approves; the President is updated.</td><td>1.2</td></tr>
+      <tr><td>Communications</td><td>The Campus Lead or Operations Lead initiates the communication plan and agrees standard language with the SVP for Global Network and the SCT. NU Alert goes by email and text to everyone associated with the campus.</td><td>1.2</td></tr>
+      <tr><td>Clery Act</td><td>The campus complies under the guidance of the Senior Director of Global Site Security.</td><td>1.2</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<footer>Exercise Georgia Street · Prepared for Northeastern University Vancouver from the Vancouver Emergency Operations Plan (2026), the 410 West Georgia User Manual (Allied, November 2024), the Active Threat Incident Management Playbook (draft, September 2026), the Global Network Campus Incident Response Checklists, and the Campus Operations and Tabletop Exercise Facilitator Guide. Fictional scenario for exercise use only. Internal planning document.</footer>
+</main>
+
+<button class="capbtn noprint" type="button" id="capOpen" aria-expanded="false" aria-controls="drawer">Capture</button>
+<div class="drawer noprint" id="drawer" role="dialog" aria-label="Capture a note">
+  <strong>Capture a note</strong>
+  <label for="cMod">Module</label>
+  <select id="cMod">
+    <option value="Setup">Setup</option><option value="Module 1">Module 1 · First minutes</option><option value="Module 2">Module 2 · Lockdown</option><option value="Module 3">Module 3 · Custody and release</option><option value="Module 4">Module 4 · Reopening</option><option value="Debrief">Debrief</option>
+  </select>
+  <label for="cCat">Type</label>
+  <select id="cCat">
+    <option>Gap</option><option>Assumption</option><option>Dependency</option><option>Unclear ownership</option><option>Campus-specific</option><option>Worked well</option><option>Follow-up</option>
+  </select>
+  <label for="cText">Note</label>
+  <textarea id="cText" placeholder="What did the group say or discover?"></textarea>
+  <label for="cOwner">Owner (optional)</label>
+  <input id="cOwner" type="text" placeholder="Who follows up">
+  <div class="row"><button class="btn primary" type="button" id="cSave">Save note</button><button class="btn" type="button" id="cCancel">Close</button></div>
+</div>
+
+<script>
+(function(){
+  var KEY='ex-georgia-st-v1';
+  var state={mode:'fac',shown:{},notes:[]};
+  try{var raw=localStorage.getItem(KEY);if(raw){var s=JSON.parse(raw);if(s&&typeof s==='object'){state.mode=s.mode||'fac';state.shown=s.shown||{};state.notes=Array.isArray(s.notes)?s.notes:[];}}}catch(e){}
+  function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}
+
+  var mFac=document.getElementById('mFac'),mProj=document.getElementById('mProj');
+  function setMode(m){state.mode=m;document.body.classList.toggle('proj',m==='proj');document.body.classList.toggle('fac',m!=='proj');mFac.setAttribute('aria-pressed',m!=='proj');mProj.setAttribute('aria-pressed',m==='proj');save();}
+  mFac.addEventListener('click',function(){setMode('fac')});
+  mProj.addEventListener('click',function(){setMode('proj')});
+  setMode(state.mode);
+
+  var injects=document.querySelectorAll('.inject');
+  function paint(el){var id=el.getAttribute('data-id'),on=!!state.shown[id];el.classList.toggle('shown',on);var b=el.querySelector('.reveal');b.textContent=on?'Hide':'Reveal';b.setAttribute('aria-expanded',on);}
+  injects.forEach(function(el){paint(el);el.querySelector('.reveal').addEventListener('click',function(){var id=el.getAttribute('data-id');state.shown[id]=!state.shown[id];save();paint(el);});});
+
+  // Capture
+  var drawer=document.getElementById('drawer'),open=document.getElementById('capOpen');
+  var cMod=document.getElementById('cMod'),cCat=document.getElementById('cCat'),cText=document.getElementById('cText'),cOwner=document.getElementById('cOwner');
+  function currentModule(){var ids=['setup','m1','m2','m3','m4','debrief'],names=['Setup','Module 1','Module 2','Module 3','Module 4','Debrief'],cur='Setup';ids.forEach(function(id,i){var s=document.getElementById(id);if(s&&s.getBoundingClientRect().top<window.innerHeight*0.4)cur=names[i];});return cur;}
+  function toggle(show){drawer.classList.toggle('open',show);open.setAttribute('aria-expanded',show);if(show){cMod.value=currentModule();cText.focus();}}
+  open.addEventListener('click',function(){toggle(!drawer.classList.contains('open'))});
+  document.getElementById('cCancel').addEventListener('click',function(){toggle(false);open.focus();});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&drawer.classList.contains('open')){toggle(false);open.focus();}});
+  document.getElementById('cSave').addEventListener('click',function(){
+    var t=cText.value.trim();if(!t){cText.focus();return;}
+    var d=new Date();var hh=String(d.getHours()).padStart(2,'0'),mm=String(d.getMinutes()).padStart(2,'0');
+    state.notes.push({mod:cMod.value,cat:cCat.value,text:t,owner:cOwner.value.trim(),at:hh+':'+mm});
+    save();cText.value='';cOwner.value='';render();toggle(false);open.focus();
+  });
+
+  var log=document.getElementById('log'),exp=document.getElementById('export');
+  function render(){
+    log.innerHTML='';
+    if(!state.notes.length){var li=document.createElement('li');li.className='empty';li.style.display='block';li.textContent='No notes yet. Use Capture during the session.';log.appendChild(li);}
+    state.notes.forEach(function(n,i){
+      var li=document.createElement('li');
+      var c=document.createElement('span');c.className='cat';c.textContent=n.cat;
+      var t=document.createElement('div');t.textContent=n.text;
+      var del=document.createElement('button');del.className='del';del.type='button';del.textContent='Remove';del.setAttribute('aria-label','Remove note');
+      del.addEventListener('click',function(){state.notes.splice(i,1);save();render();});
+      var m=document.createElement('div');m.className='meta';m.textContent=n.mod+' · '+n.at+(n.owner?' · Owner: '+n.owner:'');
+      li.appendChild(c);li.appendChild(t);li.appendChild(del);li.appendChild(m);log.appendChild(li);
+    });
+    var cats=['Gap','Assumption','Dependency','Unclear ownership','Campus-specific','Follow-up','Worked well'];
+    var out='Exercise Georgia Street: captured notes\n';
+    cats.forEach(function(cat){var items=state.notes.filter(function(n){return n.cat===cat});if(!items.length)return;out+='\n'+cat+'\n';items.forEach(function(n){out+='- ['+n.mod+'] '+n.text+(n.owner?' (Owner: '+n.owner+')':'')+'\n';});});
+    exp.value=state.notes.length?out:'';
+  }
+  render();
+  document.getElementById('copyBtn').addEventListener('click',function(){
+    exp.select();var ok=false;
+    try{if(navigator.clipboard){navigator.clipboard.writeText(exp.value);ok=true;}}catch(e){}
+    if(!ok){try{document.execCommand('copy');}catch(e){}}
+    this.textContent='Copied';var b=this;setTimeout(function(){b.textContent='Copy summary'},1600);
+  });
+  document.getElementById('resetBtn').addEventListener('click',function(){
+    if(!confirm('Clear all captured notes and hide every inject?'))return;
+    state.notes=[];state.shown={};save();render();injects.forEach(paint);
+  });
+})();
+</script>
+</body>
+</html>
